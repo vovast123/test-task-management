@@ -1,11 +1,15 @@
 from django.test import TestCase
-from django.core.cache import cache
 from .models import Task
+
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
+from django.core.cache import cache
+
+
 
 class TaskApiTestCase(TestCase):
+    # Настройка перед тестами
     def setUp(self):
         #создаем юзера и админа
         self.user = User.objects.create_user(username='testuser', password='password')
@@ -25,7 +29,7 @@ class TaskApiTestCase(TestCase):
             user=self.user 
         )
 
-
+    # GET запросы
     def test_get_unauthorized(self):
         #Пытаемся получить список когда не авторизован
 
@@ -64,7 +68,7 @@ class TaskApiTestCase(TestCase):
 
 
     def test_filter_and_pagination(self):
-        # Устанавливаем токен авторизации
+
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.user_token)
 
         # Создаем дополнительные задачи для проверки пагинации
@@ -85,20 +89,17 @@ class TaskApiTestCase(TestCase):
 
 
     def test_get_noexistent_page(self):
-        # Устанавливаем токен авторизации
+    
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.user_token)
-
 
         # GET запрос для несуществующей страницы
         response = self.client.get('/tasks/?page=5', format='json')
 
-        # Проверяем, что сервер возвращает 404 Not Found
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
 
-
-
+    # POST Запрос 
     def test_post_task_authenticated(self):
         #Пытаемся создать задачу 
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.user_token)
@@ -111,7 +112,6 @@ class TaskApiTestCase(TestCase):
             'user': self.user.id , 
         }
 
-        #POST Запрос 
         response = self.client.post('/tasks/', task_data, format='json')
 
         # Проверка, что пользователь не может создать задачу
@@ -119,7 +119,7 @@ class TaskApiTestCase(TestCase):
 
 
 
-
+    #PATCH Запрос
     def test_patch_user_status(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.user_token)
 
@@ -127,12 +127,11 @@ class TaskApiTestCase(TestCase):
             'status': 'in_progress',
         }
 
-        #PATCH Запрос
         response = self.client.patch(f'/tasks/{self.task.id}/', task_data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-
+    #PUT Запрос
     def test_put_user(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.user_token)
 
@@ -145,16 +144,15 @@ class TaskApiTestCase(TestCase):
         }
 
         #PATCH Запрос
-        response = self.client.patch(f'/tasks/{self.task.id}/', task_data, format='json')
+        response = self.client.put(f'/tasks/{self.task.id}/', task_data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-
+    #DELETE запрос
     def test_delete_task(self):
-        #Устанавливаем токен авторизации
+        
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.user_token)
 
-        #DELETE запрос
         response = self.client.delete(f'/tasks/{self.task.id}/', format='json')
 
         # Проверяем, что запрос успешен
@@ -165,7 +163,7 @@ class TaskApiTestCase(TestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
-
+    #Тест на роботу кеша
     def test_cache(self):
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.user_token)
 
@@ -188,5 +186,6 @@ class TaskApiTestCase(TestCase):
         cached_tasks_after_update = cache.get('tasks_list')
         print("Cached Tasks After Update:", cached_tasks_after_update)
         self.assertIsNone(cached_tasks_after_update) # Кэш должен быть очищен
+
 
 

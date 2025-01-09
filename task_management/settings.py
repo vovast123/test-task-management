@@ -42,8 +42,10 @@ INSTALLED_APPS = [
     'rest_framework', 
     'rest_framework.authtoken',
     'django_filters',
+    'channels',
 
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -74,6 +76,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'task_management.wsgi.application'
+ASGI_APPLICATION = 'task_management.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',  # Потребуется Redis
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 #настройка рест фреймворка
 REST_FRAMEWORK = {

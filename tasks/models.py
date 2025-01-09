@@ -22,8 +22,6 @@ class Task(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE,related_name='tasks')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateField(auto_now=True)  
-    # так как мы указали auto_now оно будет обновлятся каждый раз при изминении обьекта и нам не нужно прописывать это во вьюхе
-
 
     def __str__(self):
         return f"{self.title} ({self.status})"

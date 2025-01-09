@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 
 
 class TaskSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  # Ожидает ID пользователя
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())  
 
     class Meta:
         model = Task

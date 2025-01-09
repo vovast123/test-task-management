@@ -8,6 +8,10 @@ from django.views.decorators.cache import cache_page
 from django.core.cache import cache
 from django.utils.decorators import method_decorator
 
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
+
 
 class TaskFilter(django_filters.FilterSet):
     title = django_filters.CharFilter()
@@ -56,9 +60,33 @@ class TaskViewSet(viewsets.ModelViewSet):
         cache.delete('tasks_list')
 
     def perform_update(self, serializer):
+        task = serializer.save()
+
+        # Отправка обновления через WebSocket
+        channel_layer = get_channel_layer()
+
+        # Данные о задаче, которые мы отправим
+        task_data = {
+            'id': task.id,
+            'title': task.title,
+            'status': task.status,
+        }
+        
+        # Отправляем обновление всем подключенным пользователям, следящим за задачей
+        async_to_sync(channel_layer.send)(
+            f'task_{task.user.id}',  # Пользователь, которому нужно отправить уведомление
+            {
+                'type': 'send_task_update',
+                'task_data': task_data
+            }
+        )
+
+
         super().perform_update(serializer)
         # Очистить кэш после обновления задачи
         cache.delete('tasks_list')
+
+
 
     def perform_destroy(self, instance):
         super().perform_destroy(instance)

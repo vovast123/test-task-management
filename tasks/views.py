@@ -1,12 +1,12 @@
-from django.shortcuts import render
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import viewsets, permissions, filters
 from django_filters import rest_framework as django_filters
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Task
 from .serializers import TaskSerializer
-from rest_framework.response import Response
-from rest_framework import status
+from django.views.decorators.cache import cache_page
+from django.core.cache import cache
+from django.utils.decorators import method_decorator
 
 
 class TaskFilter(django_filters.FilterSet):
@@ -37,8 +37,30 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     # Сортировка задач по дате создания
     ordering_fields = ['created_at']
-    ordering = ['created_at']  # По умолчанию сортировать по дате создания
+    ordering = ['-created_at']  # По умолчанию сортировать по дате создания
 
 
     authentication_classes = [JWTAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
+
+    @method_decorator(cache_page(60 * 15))  # Кэширование для списка задач
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    
+
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        # Очистить кэш после создания задачи
+        cache.delete('tasks_list')
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        # Очистить кэш после обновления задачи
+        cache.delete('tasks_list')
+
+    def perform_destroy(self, instance):
+        super().perform_destroy(instance)
+        # Очистить кэш после удаления задачи
+        cache.delete('tasks_list')

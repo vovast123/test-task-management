@@ -1,9 +1,8 @@
 from django.test import TestCase
-
+from django.core.cache import cache
 from .models import Task
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
-from rest_framework.authtoken.models import Token 
 from rest_framework import status
 
 class TaskApiTestCase(TestCase):
@@ -28,7 +27,7 @@ class TaskApiTestCase(TestCase):
 
 
     def test_get_unauthorized(self):
-        #Пытаемся получить списек когда не авторизован
+        #Пытаемся получить список когда не авторизован
 
 
         #GET запрос
@@ -40,7 +39,7 @@ class TaskApiTestCase(TestCase):
 
 
     def test_get_tasks_user(self):
-        #Пытаемся получить списек 
+        #Пытаемся получить список 
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.user_token)
 
 
@@ -152,15 +151,42 @@ class TaskApiTestCase(TestCase):
 
 
     def test_delete_task(self):
-        # Устанавливаем токен авторизации
+        #Устанавливаем токен авторизации
         self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.user_token)
 
-        # Удаляем задачу с использованием DELETE запроса
+        #DELETE запрос
         response = self.client.delete(f'/tasks/{self.task.id}/', format='json')
 
-        # Проверяем, что запрос успешен (статус 204 No Content)
+        # Проверяем, что запрос успешен
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-        # Проверяем, что задача действительно удалена
+        # Проверяем, что задача  удалена
         response = self.client.get(f'/tasks/{self.task.id}/', format='json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+
+    def test_cache(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer ' + self.user_token)
+
+        cache.set('tasks_list', 'cached_data', timeout=60 * 15)
+
+        # Проверяем, что данные кэшируются
+        response = self.client.get('/tasks/', format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Проверяем, что список задач был закэширован
+        cached_tasks = cache.get('tasks_list')
+        print("Cached Tasks:", cached_tasks)
+        self.assertIsNotNone(cached_tasks) 
+
+        #Обновляем задачу
+        updated_task_data = {'title': 'Updated Task'}
+        self.client.patch(f'/tasks/{self.task.id}/', updated_task_data, format='json')
+        
+        
+        cached_tasks_after_update = cache.get('tasks_list')
+        print("Cached Tasks After Update:", cached_tasks_after_update)
+        self.assertIsNone(cached_tasks_after_update) # Кэш должен быть очищен
+
+
